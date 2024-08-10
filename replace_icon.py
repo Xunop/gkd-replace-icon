@@ -1,8 +1,9 @@
-import sys
+import platform
 import shutil
 import subprocess
-from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
+import sys
 from pathlib import Path
+from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 
 KEYSTORE = Path("./bin/freekey.keystore")
 ALIAS = "freekey"
@@ -77,9 +78,19 @@ def replace_files(SOURCE, TARGET):
 
 
 def align_and_sign(APK_PACKED, keystore, alias, password):
+    plat = platform.system()
+    if plat == "Windows":
+        zip_align_name = "zipalign.exe"
+        apk_signer_name = "apksigner.bat"
+    elif plat == "Darwin":
+        zip_align_name = "zipalign-macosx"
+        apk_signer_name = "apksigner-macosx"
+    else:
+        zip_align_name = "zipalign"
+        apk_signer_name = "apksigner"
     BIN = Path("./bin")
-    ZIPALIGN = BIN / "zipalign"
-    APKSIGNER = BIN / "apksigner.bat"
+    ZIPALIGN = BIN / zip_align_name
+    APKSIGNER = BIN / apk_signer_name
     APK_ALIGNED = APK_PACKED.with_name(f"{APK_PACKED.stem}_aligned.apk")
     APK_SIGNED = APK_ALIGNED.with_name(f"{APK_ALIGNED.stem}_signed.apk")
 
@@ -127,6 +138,6 @@ def main(APK):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        infoprint("Usage: replace_icon.py <apk_file>")
+        infoprint("Usage: python replace_icon.py <apk_file>")
         sys.exit(1)
     main(Path(sys.argv[1]))

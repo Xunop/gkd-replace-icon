@@ -16,8 +16,8 @@
 
 ### 用法：
 传入要修改的 apk 文件 _（或者，直接将 apk 拖到脚本上）_
-```
-replace_icon.py gkd-vxxx.apk
+```shell
+python replace_icon.py gkd-vxxx.apk
 ```
 然后你会获得一个修改好的 `gkd-vxxx_replaced.apk`。
 
