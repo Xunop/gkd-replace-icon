@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
+from datetime import datetime
 
 KEYSTORE = Path("./bin/freekey.keystore")
 ALIAS = "freekey"
@@ -86,10 +87,10 @@ def align_and_sign(APK_PACKED, keystore, alias, password):
         zip_align_name = "zipalign-macosx"
         apk_signer_name = "apksigner-macosx"
     else:
-        zip_align_name = "zipalign"
+        #zip_align_name = "zipalign"
         apk_signer_name = "apksigner"
     BIN = Path("./bin")
-    ZIPALIGN = BIN / zip_align_name
+    ZIPALIGN = "/usr/bin/zipalign"
     APKSIGNER = BIN / apk_signer_name
     APK_ALIGNED = APK_PACKED.with_name(f"{APK_PACKED.stem}_aligned.apk")
     APK_SIGNED = APK_ALIGNED.with_name(f"{APK_ALIGNED.stem}_signed.apk")
@@ -116,23 +117,26 @@ def align_and_sign(APK_PACKED, keystore, alias, password):
     return APK_SIGNED
 
 
-def main(APK):
-    infoprint(f'Replacing icon in "{APK}"...')
-    if not APK.suffix == ".apk":
-        errorprint(f'The provided file "{APK}" is not an APK file.')
+def main(apk_path, output_dir):
+    infoprint(f'Replacing icon in "{apk_path}"...')
+    if not apk_path.suffix == ".apk":
+        errorprint(f'The provided file "{apk_path}" is not an APK file.')
         sys.exit(1)
 
-    OUTPUT = Path("./out")
-    if OUTPUT.exists():
-        shutil.rmtree(OUTPUT)
-    OUTPUT.mkdir()
+    apk_dir = apk_path.parent
+    output_dir = output_dir or Path(f"{apk_dir}/out/{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True)
 
     DIF = Path("./dif")
-    UNPACKED = unpack_apk(APK, OUTPUT)
+    UNPACKED = unpack_apk(apk_path, output_dir)
     replace_files(DIF, UNPACKED)
-    APK_PACKED = repack_apk(UNPACKED, OUTPUT, APK)
+    APK_PACKED = repack_apk(UNPACKED, output_dir, apk_path)
     APK_SIGNED = align_and_sign(APK_PACKED, KEYSTORE, ALIAS, PASSWORD)
-    shutil.copy(APK_SIGNED, APK.with_name(f"{APK.stem}_replaced.apk"))
+
+    output_file = apk_dir / f"{apk_path.stem}_replaced.apk"
+    shutil.copy(APK_SIGNED, output_file)
     infoprint(f'Replaced APK saved as "{APK_SIGNED}"')
 
 
@@ -140,4 +144,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         infoprint("Usage: python replace_icon.py <apk_file>")
         sys.exit(1)
-    main(Path(sys.argv[1]))
+    apk_path = Path(sys.argv[1])
+    output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+    main(apk_path, output_path)
